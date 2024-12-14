@@ -1,4 +1,3 @@
-Here’s a fun and professional README file for your script, tailored for a PG-13 GitHub audience. It’s engaging yet informative, perfect for showcasing your work.
 
 Bitburner All-in-One Orchestrator
 
