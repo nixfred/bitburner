@@ -4,6 +4,7 @@
  * Unified hacking orchestrator and server management script:
  * - Dynamically distributes hack/grow/weaken actions across all available servers.
  * - Purchases new servers every 90 seconds (price and affordability checked).
+ * - Automatically detects and integrates manually purchased servers.
  * - Provides real-time status reports directly in the log view.
  * - Optimizes resource usage by prioritizing servers with higher available RAM.
  * - Automatically switches targets for maximum profits.
@@ -13,34 +14,13 @@
  * 
  * Requirements:
  * - Place `hack.js`, `grow.js`, and `weaken.js` in your home directory.
- *
- * Features in This Version:
- * 1. **Dynamic Hacking Logic**:
- *    - Automatically selects the best target for hacking.
- *    - Adapts to the server's money, security, and growth rates.
- *
- * 2. **Efficient Server Management**:
- *    - Purchases new servers every 90 seconds if affordable.
- *    - Automatically deploys required scripts to all servers.
- *
- * 3. **Real-Time Status Reports**:
- *    - Logs earnings, server status, and next server cost directly in the terminal.
- *    - Clears logs between updates for a clean display.
- *
- * 4. **Configurable Parameters**:
- *    - Thresholds for hacking, growing, weakening, and server purchases.
- *    - Adjustable RAM usage for the home server.
- *
- * 5. **Error Handling and Stability**:
- *    - Handles script deployment errors.
- *    - Reports warnings for insufficient RAM or unsuitable targets.
  */
 
 export async function main(ns) {
     ns.disableLog("ALL");
     ns.tail(); // Automatically open the log window for real-time output
 
-    // ======== User-Adjustable Configuration (Positionally NSFW) ========
+    // ======== User-Adjustable Configuration ========
     const hackUpdateInterval = 30000;     // Time between hack cycles (ms)
     const buyCheckInterval = 90000;       // Time between server purchase checks (ms)
     const hackThreshold = 0.75;           // Hack if money >= 75% of max
@@ -52,23 +32,22 @@ export async function main(ns) {
     const scripts = ["hack.js", "grow.js", "weaken.js"]; // Required scripts
     // ==============================================
 
-    let currentTarget = null;            // Current hacking target
-    let totalEarnings = 0;               // Tracks total earnings
-    let targetSwitches = 0;              // Tracks target changes
-    let lastBuyCheck = 0;                // Tracks last server purchase check
+    let currentTarget = null;
+    let totalEarnings = 0;
+    let targetSwitches = 0;
+    let lastBuyCheck = 0;
 
-    const maxServers = ns.getPurchasedServerLimit(); // Max servers allowed
-    const maxRam = ns.getPurchasedServerMaxRam();    // Max RAM purchasable
+    const maxServers = ns.getPurchasedServerLimit();
+    const maxRam = ns.getPurchasedServerMaxRam();
+
+    // Keep track of initialized servers
+    const trackedServers = new Set();
 
     while (true) {
-        // ======= SCRIPT DEPLOYMENT (Positionally NSFW) =======
-        try {
-            await ensureScriptsOnAllServers(ns, scripts);
-        } catch (err) {
-            ns.print(`[ERROR] Failed to deploy scripts: ${err}`);
-        }
+        // ======= DETECT & INITIALIZE NEW SERVERS =======
+        await detectAndInitializeNewServers(ns, scripts, trackedServers);
 
-        // ======= HACKING LOGIC (Positionally NSFW) =======
+        // ======= HACKING LOGIC =======
         const newTarget = findBestTarget(ns);
         if (newTarget !== currentTarget) {
             targetSwitches++;
@@ -86,20 +65,18 @@ export async function main(ns) {
             ns.print(`[WARN] No suitable hacking targets found.`);
         }
 
-        // ======= SERVER PURCHASE LOGIC (Positionally NSFW) =======
+        // ======= SERVER PURCHASE LOGIC =======
         if (Date.now() - lastBuyCheck > buyCheckInterval) {
             lastBuyCheck = Date.now();
             const purchaseResult = attemptToBuyServer(ns, baseRam, moneyThreshold, maxServers, maxRam);
             if (purchaseResult && purchaseResult.purchased) {
                 ns.print(`[INFO] Purchased new server: ${purchaseResult.name} (${ns.nFormat(purchaseResult.ram, "0.0")} GB RAM)`);
-                await ensureScriptsOnServer(ns, purchaseResult.name, scripts);
-                ns.print(`[INFO] Server ${purchaseResult.name} is ready and added to the swarm.`);
             } else {
                 ns.print(`[INFO] No server purchased. Monitoring finances.`);
             }
         }
 
-        // ======= REAL-TIME STATUS REPORT (Positionally NSFW) =======
+        // ======= REAL-TIME STATUS REPORT =======
         await reportStatus(ns, baseRam, moneyThreshold, maxRam, totalEarnings, currentTarget);
 
         // ======= WAIT BETWEEN CYCLES =======
@@ -108,7 +85,50 @@ export async function main(ns) {
 }
 
 /**
- * Finds the best target based on max money and minimum security ratio.
+ * Detects and initializes new servers for hacking operations.
+ * Called each cycle from the main loop to avoid concurrency issues.
+ */
+async function detectAndInitializeNewServers(ns, scripts, trackedServers) {
+    const allServers = ns.getPurchasedServers();
+    for (const srv of allServers) {
+        if (!trackedServers.has(srv)) {
+            trackedServers.add(srv);
+            await ensureScriptsOnServer(ns, srv, scripts);
+            ns.print(`[INFO] Detected and initialized new server: ${srv}`);
+        }
+    }
+}
+
+/**
+ * Ensures a specific server has the required scripts and deploys them.
+ */
+async function ensureScriptsOnServer(ns, server, scripts) {
+    for (const script of scripts) {
+        if (!ns.fileExists(script, server)) {
+            await ns.scp(script, "home", server);
+        }
+    }
+}
+
+/**
+ * Attempts to buy a server if conditions allow it.
+ */
+function attemptToBuyServer(ns, baseRam, moneyThreshold, maxServers, maxRam) {
+    const currentMoney = ns.getServerMoneyAvailable("home");
+    const cost = ns.getPurchasedServerCost(baseRam);
+    const ownedServers = ns.getPurchasedServers();
+
+    if (ownedServers.length < maxServers && cost < currentMoney * moneyThreshold) {
+        const hostname = ns.purchaseServer(`pserv-${ownedServers.length}`, baseRam);
+        if (hostname) {
+            return { purchased: true, name: hostname, ram: baseRam };
+        }
+    }
+    return { purchased: false };
+}
+
+/**
+ * Finds the best target based on max money and min sec ratio.
  */
 function findBestTarget(ns) {
     const servers = ns.scan("home").filter(s => ns.hasRootAccess(s));
@@ -143,6 +163,7 @@ async function executeHackingCycle(ns, target, hackThreshold, growThreshold, wea
 async function executeActionDistributed(ns, action, target, homeRamUsageFraction) {
     const scriptMap = { weaken: "weaken.js", grow: "grow.js", hack: "hack.js" };
     const script = scriptMap[action];
+
     const servers = [ns.getHostname(), ...ns.getPurchasedServers()]
         .filter(s => ns.hasRootAccess(s))
         .sort((a, b) => ns.getServerMaxRam(b) - ns.getServerMaxRam(a));
@@ -162,6 +183,7 @@ async function executeActionDistributed(ns, action, target, homeRamUsageFraction
         const threads = Math.floor(usableRam / scriptRam);
 
         if (threads > 0) {
+            // Note: ns.exec does not return a Promise, so no await needed here.
             ns.exec(script, srv, threads, target);
             totalThreads += threads;
         }
@@ -169,42 +191,6 @@ async function executeActionDistributed(ns, action, target, homeRamUsageFraction
 
     ns.print(`[INFO] Launched ${totalThreads} threads for ${action} on ${target}.`);
     return totalThreads;
-}
-
-/**
- * Ensures all servers have the required scripts.
- */
-async function ensureScriptsOnAllServers(ns, scripts) {
-    const servers = [ns.getHostname(), ...ns.getPurchasedServers()];
-    for (const srv of servers) {
-        await ensureScriptsOnServer(ns, srv, scripts);
-    }
-}
-
-/**
- * Ensures a specific server has the required scripts.
- */
-async function ensureScriptsOnServer(ns, server, scripts) {
-    for (const script of scripts) {
-        if (!ns.fileExists(script, server)) {
-            await ns.scp(script, "home", server);
-        }
-    }
-}
-
-/**
- * Attempts to purchase a server if affordable.
- */
-function attemptToBuyServer(ns, baseRam, moneyThreshold, maxServers, maxRam) {
-    const servers = ns.getPurchasedServers();
-    const cost = ns.getPurchasedServerCost(baseRam);
-
-    if (servers.length < maxServers && ns.getServerMoneyAvailable("home") * moneyThreshold >= cost) {
-        const name = `pserv-${servers.length}`;
-        ns.purchaseServer(name, baseRam);
-        return { purchased: true, name, ram: baseRam };
-    }
-    return { purchased: false };
 }
 
 /**
