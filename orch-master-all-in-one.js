@@ -1,10 +1,10 @@
 /**
  * orch-master-all-in-one.js
- *
+ * NSFW! NSFW!
  * Unified hacking orchestrator and server management script:
  * - Dynamically distributes hack/grow/weaken actions across all available servers.
  * - Purchases new servers and integrates them into the swarm.
- * - Provides 5-minute status reports including current finances, shortfalls, and time estimates.
+ * - Provides real-time status reports directly in the log view.
  *
  * Usage:
  * run orch-master-all-in-one.js
@@ -12,6 +12,7 @@
 
 export async function main(ns) {
     ns.disableLog("ALL");
+    ns.tail(); // Automatically open the log window for direct output
 
     // ======== User-Adjustable Configuration ========
     const hackUpdateInterval = 30000;     // Time between hack cycles (ms)
@@ -32,12 +33,6 @@ export async function main(ns) {
     const maxServers = ns.getPurchasedServerLimit();
     const maxRam = ns.getPurchasedServerMaxRam();
 
-    ns.tprint("=====================================================");
-    ns.tprint(" orch-master-all-in-one.js: Unified Hack & Buy Script ");
-    ns.tprint("-----------------------------------------------------");
-    ns.tprint("Automatically configures new servers and integrates them into the swarm.");
-    ns.tprint("=====================================================");
-
     let cycleCount = 0;
 
     while (true) {
@@ -47,7 +42,7 @@ export async function main(ns) {
         try {
             await ensureScriptsOnAllServers(ns, scripts);
         } catch (err) {
-            ns.tprint(`[ERROR] Failed to deploy scripts: ${err}`);
+            ns.print(`[ERROR] Failed to deploy scripts: ${err}`);
         }
 
         // 2. HACKING LOGIC
@@ -56,17 +51,17 @@ export async function main(ns) {
         if (newTarget !== currentTarget) {
             targetSwitches++;
             currentTarget = newTarget;
-            ns.tprint(`[INFO] Switching hacking target to: ${currentTarget}`);
+            ns.print(`[INFO] Switching hacking target to: ${currentTarget}`);
         }
 
         if (currentTarget) {
             const earnings = await executeHackingCycle(ns, currentTarget, hackThreshold, growThreshold, weakenOffset, homeRamUsageFraction);
             if (earnings > 0) {
                 totalEarnings += earnings;
-                ns.tprint(`[INFO] Earned ${ns.nFormat(earnings, "$0.00a")}. Total: ${ns.nFormat(totalEarnings, "$0.00a")}`);
+                ns.print(`[INFO] Earned ${ns.nFormat(earnings, "$0.00a")}. Total: ${ns.nFormat(totalEarnings, "$0.00a")}`);
             }
         } else {
-            ns.tprint(`[WARN] No suitable hacking targets found.`);
+            ns.print(`[WARN] No suitable hacking targets found.`);
         }
 
         // 3. SERVER BUYING LOGIC every 5 minutes
@@ -74,15 +69,18 @@ export async function main(ns) {
             cycleCount = 0;
             const purchaseResult = attemptToBuyServer(ns, baseRam, moneyThreshold, maxServers, maxRam);
             if (purchaseResult && purchaseResult.purchased) {
-                ns.tprint(`[INFO] Purchased new server: ${purchaseResult.name} (${ns.nFormat(purchaseResult.ram, "0.0")} GB RAM)`);
+                ns.print(`[INFO] Purchased new server: ${purchaseResult.name} (${ns.nFormat(purchaseResult.ram, "0.0")} GB RAM)`);
                 // Copy scripts to the newly purchased server
                 await ensureScriptsOnServer(ns, purchaseResult.name, scripts);
-                ns.tprint(`[INFO] Server ${purchaseResult.name} is ready and added to the swarm.`);
+                ns.print(`[INFO] Server ${purchaseResult.name} is ready and added to the swarm.`);
             } else {
                 // If no purchase was made, report status
-                await reportStatus(ns, baseRam, moneyThreshold, maxRam);
+                await reportStatus(ns, baseRam, moneyThreshold, maxRam, totalEarnings, currentTarget);
             }
         }
+
+        // Real-time status updates
+        await reportStatus(ns, baseRam, moneyThreshold, maxRam, totalEarnings, currentTarget);
 
         await ns.sleep(hackUpdateInterval);
     }
@@ -189,10 +187,17 @@ function attemptToBuyServer(ns, baseRam, moneyThreshold, maxServers, maxRam) {
 }
 
 /**
- * Reports current status and finances.
+ * Reports current status and finances directly to the log window.
  */
-async function reportStatus(ns, baseRam, moneyThreshold, maxRam) {
-    ns.tprint(`[STATUS] Total earnings: ${ns.nFormat(totalEarnings, "$0.00a")}`);
-    ns.tprint(`[STATUS] Servers owned: ${ns.getPurchasedServers().length}/${maxServers}`);
-    ns.tprint(`[STATUS] Next server cost: ${ns.nFormat(ns.getPurchasedServerCost(baseRam), "$0.00a")}`);
+async function reportStatus(ns, baseRam, moneyThreshold, maxRam, totalEarnings, currentTarget) {
+    ns.clearLog(); // Clear the log for fresh output
+    ns.print("=====================================================");
+    ns.print(" orch-master-all-in-one.js: Status Report ");
+    ns.print("-----------------------------------------------------");
+    ns.print(`[INFO] Total Earnings: ${ns.nFormat(totalEarnings, "$0.00a")}`);
+    ns.print(`[INFO] Hacking Target: ${currentTarget || "None"}`);
+    ns.print(`[INFO] Servers Owned: ${ns.getPurchasedServers().length}/${ns.getPurchasedServerLimit()}`);
+    ns.print(`[INFO] Next Server Cost: ${ns.nFormat(ns.getPurchasedServerCost(baseRam), "$0.00a")}`);
+    ns.print(`[INFO] Max Server RAM: ${maxRam} GB`);
+    ns.print("=====================================================");
 }
