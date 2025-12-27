@@ -1,1 +1,1 @@
-status
+run pai-xp-boost.js
