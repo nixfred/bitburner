@@ -1,20 +1,29 @@
-/**
- * pai-simple.js - SIMPLE WORKING SCRIPT
- * NO DEPENDENCIES. Does everything directly.
- *
- * Based on proven community script that WORKS.
- * @param {NS} ns
- */
+/** @param {NS} ns */
 export async function main(ns) {
-    const target = "n00dles"; // Easiest target, level 1
-
     ns.disableLog("ALL");
     ns.ui.openTail();
 
-    // Get root if needed
-    if (!ns.hasRootAccess(target)) {
-        ns.nuke(target);
+    // Crack and nuke servers
+    function rootServer(s) {
+        try { if (ns.fileExists("BruteSSH.exe")) ns.brutessh(s); } catch {}
+        try { if (ns.fileExists("FTPCrack.exe")) ns.ftpcrack(s); } catch {}
+        try { ns.nuke(s); return true; } catch { return false; }
     }
+
+    // Pick best target we can hack
+    function pickTarget() {
+        const targets = ["n00dles", "foodnstuff", "sigma-cosmetics", "joesguns", "harakiri-sushi", "hong-fang-tea"];
+        for (const t of targets.reverse()) {
+            if (ns.getServerRequiredHackingLevel(t) <= ns.getHackingLevel()) {
+                if (!ns.hasRootAccess(t)) rootServer(t);
+                if (ns.hasRootAccess(t)) return t;
+            }
+        }
+        return "n00dles";
+    }
+
+    let target = pickTarget();
+    if (!ns.hasRootAccess(target)) rootServer(target);
 
     const startMoney = ns.getServerMoneyAvailable("home");
     const startLevel = ns.getHackingLevel();
@@ -50,26 +59,30 @@ export async function main(ns) {
         ns.print("  Hacks: " + hacks + " | Grows: " + grows + " | Weakens: " + weakens);
         ns.print("════════════════════════════════════════");
 
+        // Re-pick target every 50 cycles
+        if ((hacks + grows + weakens) % 50 === 0) {
+            const newTarget = pickTarget();
+            if (newTarget !== target) {
+                target = newTarget;
+                ns.print("  >>> UPGRADED TARGET: " + target);
+            }
+        }
+
         // WEAKEN if security too high
         if (securityCurrent > securityMin + 5) {
-            ns.print("  ACTION: Weakening...");
             await ns.weaken(target);
             weakens++;
         }
         // GROW if money too low
         else if (moneyAvailable < moneyMax * 0.75) {
-            ns.print("  ACTION: Growing...");
             await ns.grow(target);
             grows++;
         }
         // HACK!
         else {
-            ns.print("  ACTION: HACKING!");
             const stolen = await ns.hack(target);
             hacks++;
-            if (stolen > 0) {
-                ns.print("  STOLE: $" + ns.formatNumber(stolen));
-            }
         }
     }
 }
+
