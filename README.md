@@ -4,6 +4,15 @@ Automated scripts to reach **$1 TRILLION** in Bitburner using PAI (Personal AI I
 
 ## Quick Start
 
+### One Command Restart
+After any restart (augmentations, new game):
+```
+run bootstrap.js
+```
+This auto-detects your RAM and launches the right script.
+
+---
+
 ### 1. Set Up File Sync (VSCode → Game)
 
 The game needs to receive scripts from your computer. We use `bitburner-filesync`:
@@ -46,6 +55,7 @@ run pai-startup.js
 
 | Script | RAM | Agent | Purpose |
 |--------|-----|-------|---------|
+| `bootstrap.js` | ~3GB | PAI-Bootstrap | **Auto-detects RAM, launches best script** |
 | `pai-startup.js` | ~4GB | PAI-Launcher | Main launcher, starts all subsystems |
 | `pai-master.js` | ~16GB | PAI-MasterController | Full orchestration toward $1T |
 | `pai-early.js` | ~2.5GB | PAI-EarlyGame | Lightweight for fresh starts |
