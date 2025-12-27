@@ -1,1 +1,1 @@
-run pai-orchestrator.js
+status
