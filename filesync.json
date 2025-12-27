@@ -1,0 +1,6 @@
+{
+  "allowedFiletypes": [".js", ".script", ".txt"],
+  "port": 12525,
+  "scriptsFolder": ".",
+  "pushAllOnConnection": true
+}
