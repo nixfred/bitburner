@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="720" viewBox="0 0 1440 720" role="img" aria-labelledby="title desc">
+  <title id="title">Bitburner PAI Automation Suite</title>
+  <desc id="desc">A neon terminal network showing an automated hacking swarm progressing toward one trillion dollars in the Bitburner game.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#020908"/><stop offset="1" stop-color="#08120f"/></linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#00ff9c" stroke-opacity=".075"/></pattern>
+    <linearGradient id="money" x1="0" x2="1"><stop stop-color="#00ff9c"/><stop offset=".6" stop-color="#b6ff4a"/><stop offset="1" stop-color="#fff47a"/></linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1440" height="720" fill="url(#bg)"/><rect width="1440" height="720" fill="url(#grid)"/>
+  <g opacity=".2" fill="#00ff9c" font-family="monospace" font-size="14"><text x="42" y="48">root@home:~# run bootstrap.js</text><text x="1110" y="48">NETSCRIPT ONLINE</text><text x="42" y="680">HACK · GROW · WEAKEN</text><text x="1150" y="680">PAI SWARM</text></g>
+  <text x="720" y="120" text-anchor="middle" fill="#dcebe3" font-family="monospace" font-size="27" letter-spacing="8">BITBURNER</text>
+  <text x="720" y="185" text-anchor="middle" fill="#00ff9c" font-family="monospace" font-size="62" font-weight="700" letter-spacing="6" filter="url(#glow)">PAI AUTOMATION</text>
+  <text x="720" y="232" text-anchor="middle" fill="#799a89" font-family="monospace" font-size="18" letter-spacing="4">BOOTSTRAP → ORCHESTRATE → SCALE</text>
+  <g stroke="#00ff9c" stroke-width="3" stroke-opacity=".6" fill="none"><path d="M720 333L392 454M720 333v121M720 333l328 121"/><path d="M392 506L720 598M720 506v92M1048 506L720 598"/></g>
+  <g font-family="monospace">
+    <g transform="translate(560 275)"><rect width="320" height="116" rx="14" fill="#0c1a15" stroke="#00ff9c" stroke-width="3"/><text x="160" y="48" text-anchor="middle" fill="#00ff9c" font-size="21" font-weight="700">PAI-MASTER</text><text x="160" y="80" text-anchor="middle" fill="#89aa99" font-size="15">target + resource control</text></g>
+    <g transform="translate(250 430)"><rect width="284" height="100" rx="12" fill="#0a1512" stroke="#56d6ff" stroke-width="2"/><text x="142" y="42" text-anchor="middle" fill="#56d6ff" font-size="18">HACK</text><text x="142" y="70" text-anchor="middle" fill="#78968a" font-size="14">extract value</text></g>
+    <g transform="translate(578 430)"><rect width="284" height="100" rx="12" fill="#0a1512" stroke="#b6ff4a" stroke-width="2"/><text x="142" y="42" text-anchor="middle" fill="#b6ff4a" font-size="18">GROW</text><text x="142" y="70" text-anchor="middle" fill="#78968a" font-size="14">restore money</text></g>
+    <g transform="translate(906 430)"><rect width="284" height="100" rx="12" fill="#0a1512" stroke="#b18cff" stroke-width="2"/><text x="142" y="42" text-anchor="middle" fill="#b18cff" font-size="18">WEAKEN</text><text x="142" y="70" text-anchor="middle" fill="#78968a" font-size="14">reduce security</text></g>
+    <g transform="translate(500 580)"><rect width="440" height="74" rx="12" fill="#102018" stroke="#dfff65" stroke-width="2"/><text x="220" y="47" text-anchor="middle" fill="url(#money)" font-size="25" font-weight="700">GOAL: $1,000,000,000,000</text></g>
+  </g>
+</svg>
